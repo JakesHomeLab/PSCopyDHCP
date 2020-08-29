@@ -1,4 +1,4 @@
-$RemoteServer = (get-content .\settings.json |ConvertFrom-Json).RemoteServer
+$RemoteServer = (get-content settings.json |ConvertFrom-Json).RemoteServer
 
 $BackupPath = Invoke-Command -ComputerName $RemoteServer -ScriptBlock{
     (get-DHCPServerDatabase).backuppath
