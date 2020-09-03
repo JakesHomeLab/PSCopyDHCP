@@ -7,13 +7,14 @@ function create-DHCPBackupDirectory {
         $UsedFolderNamePrefixes += $BackupFolderNamePrefix
 
         $LocalBackupPathName = (get-item $LocalBackupPath).Name
-        $DirectoryCandiate = "$LocalBackupPathParent\$BackupFolderNamePrefix$LocalBackupPathName"
+        $DirectoryCanidate = "$LocalBackupPathParent\$BackupFolderNamePrefix$LocalBackupPathName"
 
         #Stops loop when an appropriate directory name is found
-        $DirectoryExists = Test-path $DirectoryCandiate
+        $DirectoryExists = Test-path $DirectoryCanidate
     }
 
-    Rename-Item -path $LocalBackupPath -NewName $DirectoryCandiate
+    Write-Host "The old DHCP backup folder ($LocalBackupPath) on this Server has been renamed to ($DirectoryCanidate)"
+    Rename-Item -path $LocalBackupPath -NewName $DirectoryCanidate
          
 }
 
@@ -44,6 +45,7 @@ if ((Get-windowsfeature -name dhcp).installstate -eq "installed"){
     #Tests if the folder in the DHCP settings exists.
     $TestBackupLocation = test-path -path $LocalBackupPath
 
+    #If the backup directory is the same on both, like a network share. The following would be skipped.
     if ($RemoteBackupPath -ne $LocalBackupPath){
         
         #Creates a backup directory on the new DHCP server, if a backup folder already exists.
@@ -55,5 +57,7 @@ if ((Get-windowsfeature -name dhcp).installstate -eq "installed"){
     }
         
     restore-DHCPServer -path $LocalBackupPath
+
+
 
 }else {Write-Host "The DHCP Server role has not been installed on the server"}
