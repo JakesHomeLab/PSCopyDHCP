@@ -1,23 +1,24 @@
 
 function create-DHCPBackupDirectory {
     #Renames dhcp backup folder if it already exists.
-    $ValidDirectory = $false
-    while ($ValidDirectory -eq $false){
+    $DirectoryExists = $true
+    while ($DirectoryExists -eq $true){
         $BackupFolderNamePrefix = Get-Random
         $UsedFolderNamePrefixes += $BackupFolderNamePrefix
 
         $LocalBackupPathName = (get-item $LocalBackupPath).Name
         $DirectoryCandiate = "$LocalBackupPathParent\$BackupFolderNamePrefix$LocalBackupPathName"
 
-        $ValidDirectory = Test-Connection $DirectoryCandiate
+        #Stops loop when an appropriate directory name is found
+        $DirectoryExists = Test-path $DirectoryCandiate
     }
 
-    Rename-Item -path $TestBackupLocation -NewName "$env:windir\system32\dhcp\$BackupFolderNamePrefix"+"backup"
+    Rename-Item -path $LocalBackupPath -NewName $DirectoryCandiate
          
 }
 
 #Test if DHCP Server is installed
-if ((Get-windowsfeature -name dhcp).installedstate -eq "installed"){
+if ((Get-windowsfeature -name dhcp).installstate -eq "installed"){
 
     $RemoteServer = (get-content settings.json |ConvertFrom-Json).RemoteServer
     
@@ -49,7 +50,7 @@ if ((Get-windowsfeature -name dhcp).installedstate -eq "installed"){
         if ($TestBackupLocation -eq $True -and $RemoteBackupPath -ne $LocalBackupPath){create-DHCPBackupDirectory}
 
         #Copies the backup from the old DHCP server to the new DHCP server.
-        Copy-Item -path $RemoteBackupPath -Destination $LocalBackupPath
+        Copy-Item -path $RemoteBackupPath -Destination $LocalBackupPath -Recurse
 
     }
         
