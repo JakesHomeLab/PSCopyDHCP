@@ -1,4 +1,20 @@
 
+function create-DHCPBackupDirectory {
+    #Renames dhcp backup folder if it already exists.
+    $ValidDirectory = $false
+    while ($ValidDirectory -eq $false){
+        $BackupFolderNamePrefix = Get-Random
+        $UsedFolderNamePrefixes += $BackupFolderNamePrefix
+
+        $LocalBackupPathName = (get-item $LocalBackupPath).Name
+        $DirectoryCandiate = "$LocalBackupPathParent\$BackupFolderNamePrefix$LocalBackupPathName"
+
+        $ValidDirectory = Test-Connection $DirectoryCandiate
+    }
+
+    Rename-Item -path $TestBackupLocation -NewName "$env:windir\system32\dhcp\$BackupFolderNamePrefix"+"backup"
+         
+}
 
 #Test if DHCP Server is installed
 if ((Get-windowsfeature -name dhcp).installedstate -eq "installed"){
@@ -27,39 +43,16 @@ if ((Get-windowsfeature -name dhcp).installedstate -eq "installed"){
     #Tests if the folder in the DHCP settings exists.
     $TestBackupLocation = test-path -path $LocalBackupPath
 
-    if ($TestBackupLocation -eq $True){
-        #Create an array to store duplicate folder prefixes. 
-        #They are used to create a prefix less likely to be a duplicate, such as "_".
-        $UsedFolderNamePrefixes = @()
+    if ($RemoteBackupPath -ne $LocalBackupPath){
+        
+        #Creates a backup directory on the new DHCP server, if a backup folder already exists.
+        if ($TestBackupLocation -eq $True -and $RemoteBackupPath -ne $LocalBackupPath){create-DHCPBackupDirectory}
 
-        function create-DHCPBackupDirectory {
-            
-            $ValidDirectory = $false
-            while ($ValidDirectory -eq $false){
-                $BackupFolderNamePrefix = Get-Random
-                $UsedFolderNamePrefixes += $BackupFolderNamePrefix
+        #Copies the backup from the old DHCP server to the new DHCP server.
+        Copy-Item -path $RemoteBackupPath -Destination $LocalBackupPath
 
-                $LocalBackupPathName = (get-item $LocalBackupPath).Name
-                $DirectoryCandiate = "$LocalBackupPathParent\$BackupFolderNamePrefix$LocalBackupPathName"
-
-                $ValidDirectory = Test-Connection $DirectoryCandiate
-            }
-
-            return $DirectoryCandiate
-             
-            
-        }
-
-        create-DHCPBackupDirectory
-
-        Rename-Item -path $TestBackupLocation -NewName "$env:windir\system32\dhcp\$BackupFolderNamePrefix"+"backup"
     }
+        
+    restore-DHCPServer -path $LocalBackupPath
 
-    Copy-Item -path $RemoteBackupPath -Destination 
-    $ShareLocation = $RemoteBackupPath
-
-    restore-DHCPServer -path $ShareLocation
-
-}else {
-    Write-Host "The DHCP Server role has not been installed on the server"
-}
+}else {Write-Host "The DHCP Server role has not been installed on the server"}
